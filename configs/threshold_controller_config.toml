@@ -8,4 +8,4 @@ format = "float32"
 type="control_signal"
 
 [controller]
-threshold=15_000
+threshold=500

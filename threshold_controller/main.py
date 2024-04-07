@@ -56,7 +56,7 @@ def compute_controller_output(inp: np.ndarray, th: float = 10_000) -> int:
     if inp[-1] > th:
         return 150
     else:
-        return 100
+        return 10
 
 
 def main(stop_event: threading.Event = threading.Event()):
@@ -82,7 +82,7 @@ def main(stop_event: threading.Event = threading.Event()):
             cval = compute_controller_output(ufbuffer, th=th)
             # logger.debug(f"Controller output: {cval}")
             # print(
-            #     f"Controller output: {cval}, {len(ufbuffer[-sw.n_new :])}, {ufbuffer[-sw.n_new :]}"
+            #     f"Controller output: {cval}, {len(ufbuffer[-sw.n_new :])}, {ufbuffer[-3:]}"
             # )
             for _ in ufbuffer[-sw.n_new :]:
                 outlet.push_sample([cval])
