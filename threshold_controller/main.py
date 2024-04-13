@@ -1,6 +1,7 @@
 import threading
 import tomllib
 import pylsl
+import time
 
 import numpy as np
 
@@ -9,6 +10,8 @@ from dareplane_utils.stream_watcher.lsl_stream_watcher import (
     StreamWatcher,
     pylsl_xmlelement_to_dict,
 )
+
+from threshold_controller.utils.time import sleep_s
 
 
 def init_lsl_outlet(cfg: dict) -> pylsl.StreamOutlet:
@@ -88,6 +91,8 @@ def main(stop_event: threading.Event = threading.Event()):
                 outlet.push_sample([cval])
             sw.n_new = 0
             tlast = pylsl.local_clock()
+
+            sleep_s(0.9 / config["lsl_outlet"]["nominal_freq_hz"])
 
 
 def get_main_thread() -> tuple[threading.Thread, threading.Event]:
