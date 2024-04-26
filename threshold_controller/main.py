@@ -11,7 +11,9 @@ from dareplane_utils.stream_watcher.lsl_stream_watcher import (
     pylsl_xmlelement_to_dict,
 )
 
-from threshold_controller.utils.time import sleep_s
+from dareplane_utils.general.time import sleep_s
+
+from threshold_controller.utils.logging import logger
 
 
 def init_lsl_outlet(cfg: dict) -> pylsl.StreamOutlet:
@@ -63,6 +65,7 @@ def compute_controller_output(inp: np.ndarray, th: float = 10_000) -> int:
 
 
 def main(stop_event: threading.Event = threading.Event()):
+    logger.setLevel(10)
     config = tomllib.load(
         open("./configs/threshold_controller_config.toml", "rb")
     )
@@ -81,16 +84,24 @@ def main(stop_event: threading.Event = threading.Event()):
 
         # This is only correct if the nominal_freq_hz is derived from the source stream
         if req_samples > 0 and sw.n_new > 0:
+            tlast = pylsl.local_clock()
             ufbuffer = sw.unfold_buffer()
-            cval = compute_controller_output(ufbuffer, th=th)
-            # logger.debug(f"Controller output: {cval}")
+            cval = compute_controller_output(
+                ufbuffer[-sw.n_new :].mean(axis=0), th=th
+            )
+            # logger.debug(
+            #     f"Controller output: {cval}, {ufbuffer.shape=}, {sw.n_new=}, {ufbuffer[-5:]=}"
+            # )
             # print(
             #     f"Controller output: {cval}, {len(ufbuffer[-sw.n_new :])}, {ufbuffer[-3:]}"
             # )
-            for _ in ufbuffer[-sw.n_new :]:
+
+            # push only as many as are required -> rectified downsampling of
+            # nominal_freq_hz < inlet sfreq
+            # logger.debug(f"Pushing: {req_samples=}, {cval=}")
+            for _ in range(req_samples):
                 outlet.push_sample([cval])
             sw.n_new = 0
-            tlast = pylsl.local_clock()
 
             sleep_s(0.9 / config["lsl_outlet"]["nominal_freq_hz"])
 

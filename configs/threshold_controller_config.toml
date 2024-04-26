@@ -3,7 +3,7 @@ stream = "decoder_output"
 buffer_size_s = 0.5
 [lsl_outlet]
 name="control_signal"
-nominal_freq_hz = "derive"       # either a float or "derive" -> take same as input
+nominal_freq_hz = 5500 # either a float or "derive" -> take same as input
 format = "float32"
 type="control_signal"
 
