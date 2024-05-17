@@ -72,19 +72,19 @@ def main(stop_event: threading.Event = threading.Event()):
     sw = connect_stream_watcher(config)
     outlet = init_lsl_outlet(config)
 
-    tlast = pylsl.local_clock()
+    tstart = pylsl.local_clock()
     th = config["controller"]["threshold"]
+    sent = 0
 
     while not stop_event.is_set():
         sw.update()
         req_samples = int(
             config["lsl_outlet"]["nominal_freq_hz"]
-            * (pylsl.local_clock() - tlast)
-        )
+            * (pylsl.local_clock() - tstart)
+        ) - sent
 
         # This is only correct if the nominal_freq_hz is derived from the source stream
         if req_samples > 0 and sw.n_new > 0:
-            tlast = pylsl.local_clock()
             ufbuffer = sw.unfold_buffer()
             cval = compute_controller_output(
                 ufbuffer[-sw.n_new :].mean(axis=0), th=th
@@ -101,9 +101,10 @@ def main(stop_event: threading.Event = threading.Event()):
             # logger.debug(f"Pushing: {req_samples=}, {cval=}")
             for _ in range(req_samples):
                 outlet.push_sample([cval])
+            sent += req_samples
             sw.n_new = 0
 
-            sleep_s(0.9 / config["lsl_outlet"]["nominal_freq_hz"])
+        sleep_s(0.2 / config["lsl_outlet"]["nominal_freq_hz"])
 
 
 def get_main_thread() -> tuple[threading.Thread, threading.Event]:
