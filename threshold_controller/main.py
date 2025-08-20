@@ -1,17 +1,14 @@
 import threading
-import tomllib
-import pylsl
-import time
 
 import numpy as np
-
-from fire import Fire
+import pylsl
+import tomllib
+from dareplane_utils.general.time import sleep_s
 from dareplane_utils.stream_watcher.lsl_stream_watcher import (
     StreamWatcher,
     pylsl_xmlelement_to_dict,
 )
-
-from dareplane_utils.general.time import sleep_s
+from fire import Fire
 
 from threshold_controller.utils.logging import logger
 
@@ -66,9 +63,7 @@ def compute_controller_output(inp: np.ndarray, th: float = 10_000) -> int:
 
 def main(stop_event: threading.Event = threading.Event()):
     logger.setLevel(10)
-    config = tomllib.load(
-        open("./configs/threshold_controller_config.toml", "rb")
-    )
+    config = tomllib.load(open("./configs/threshold_controller_config.toml", "rb"))
     sw = connect_stream_watcher(config)
     outlet = init_lsl_outlet(config)
 
@@ -78,17 +73,14 @@ def main(stop_event: threading.Event = threading.Event()):
     while not stop_event.is_set():
         sw.update()
         req_samples = int(
-            config["lsl_outlet"]["nominal_freq_hz"]
-            * (pylsl.local_clock() - tlast)
+            config["lsl_outlet"]["nominal_freq_hz"] * (pylsl.local_clock() - tlast)
         )
 
         # This is only correct if the nominal_freq_hz is derived from the source stream
         if req_samples > 0 and sw.n_new > 0:
             tlast = pylsl.local_clock()
             ufbuffer = sw.unfold_buffer()
-            cval = compute_controller_output(
-                ufbuffer[-sw.n_new :].mean(axis=0), th=th
-            )
+            cval = compute_controller_output(ufbuffer[-sw.n_new :].mean(axis=0), th=th)
             # logger.debug(
             #     f"Controller output: {cval}, {ufbuffer.shape=}, {sw.n_new=}, {ufbuffer[-5:]=}"
             # )
