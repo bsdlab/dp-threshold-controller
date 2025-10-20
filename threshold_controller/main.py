@@ -82,19 +82,12 @@ def main(stop_event: threading.Event = threading.Event()):
             * (pylsl.local_clock() - tlast)
         )
 
-        # This is only correct if the nominal_freq_hz is derived from the source stream
         if req_samples > 0 and sw.n_new > 0:
             tlast = pylsl.local_clock()
             ufbuffer = sw.unfold_buffer()
             cval = compute_controller_output(
                 ufbuffer[-sw.n_new :].mean(axis=0), th=th
             )
-            # logger.debug(
-            #     f"Controller output: {cval}, {ufbuffer.shape=}, {sw.n_new=}, {ufbuffer[-5:]=}"
-            # )
-            # print(
-            #     f"Controller output: {cval}, {len(ufbuffer[-sw.n_new :])}, {ufbuffer[-3:]}"
-            # )
 
             # push only as many as are required -> rectified downsampling of
             # nominal_freq_hz < inlet sfreq
