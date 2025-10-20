@@ -14,6 +14,23 @@ from threshold_controller.utils.logging import logger
 
 
 def init_lsl_outlet(cfg: dict) -> pylsl.StreamOutlet:
+    """
+    Initialize an LSL (Lab Streaming Layer) outlet for threshold controller output.
+
+    This function creates an LSL outlet that streams threshold controller decisions
+    as a single-channel stream.
+
+    Parameters
+    ----------
+    cfg : dict
+        Configuration dictionary containing LSL outlet settings. Must include
+        an "lsl_outlet" key with name, type, nominal_freq_hz, and format fields.
+
+    Returns
+    -------
+    pylsl.StreamOutlet
+        The LSL outlet for streaming the controller output.
+    """
     n_channels = 1
     info = pylsl.StreamInfo(
         cfg["lsl_outlet"]["name"],
@@ -37,7 +54,23 @@ def init_lsl_outlet(cfg: dict) -> pylsl.StreamOutlet:
 
 
 def connect_stream_watcher(config: dict) -> StreamWatcher:
-    """Connect the stream watchers"""
+    """
+    Connect to and configure the input stream watcher.
+
+    This function initializes a StreamWatcher to monitor an input LSL stream.
+    If the outlet frequency is set to "derive", the frequency is set equal to the
+    nominal sampling rate of the input stream.
+
+    Parameters
+    ----------
+    config : dict
+        Configuration dictionary containing stream connection settings.
+
+    Returns
+    -------
+    StreamWatcher
+        Connected StreamWatcher instance ready for data monitoring.
+    """
     sw = StreamWatcher(
         config["stream_to_query"]["stream"],
         buffer_size_s=config["stream_to_query"]["buffer_size_s"],
@@ -55,6 +88,26 @@ def connect_stream_watcher(config: dict) -> StreamWatcher:
 
 
 def compute_controller_output(inp: np.ndarray, th: float = 10_000) -> int:
+    """
+    Compute the output of the controller.
+
+    This function applies a simple threshold-based decision rule to the input signal.
+    If the most recent sample exceeds the threshold, it returns a high control value,
+    otherwise a low control value. This is a placeholder for more complex
+    decision-making logic that could be implemented in a real controller.
+
+    Parameters
+    ----------
+    inp : np.ndarray
+        Input signal array. The threshold comparison is applied to the last sample.
+    th : float, default=10_000
+        Threshold value for the decision boundary.
+
+    Returns
+    -------
+    int
+        Controller output: 150 if threshold exceeded, 10 otherwise.
+    """
     if inp[-1] > th:
         return 150
     else:
@@ -62,6 +115,20 @@ def compute_controller_output(inp: np.ndarray, th: float = 10_000) -> int:
 
 
 def main(stop_event: threading.Event = threading.Event()):
+    """
+    Main processing loop for the threshold controller.
+
+    This function implements the main real-time processing loop for the threshold
+    controller. It connects to an input LSL stream, applies threshold-based decisions
+    to the incoming data, and streams the control outputs via an LSL outlet.
+    The configuration is loaded from "./configs/threshold_controller_config.toml".
+
+    Parameters
+    ----------
+    stop_event : threading.Event, optional
+        Threading event to signal when processing should stop. Default creates
+        a new Event object.
+    """
     logger.setLevel(10)
     config = tomllib.load(open("./configs/threshold_controller_config.toml", "rb"))
     sw = connect_stream_watcher(config)
@@ -99,6 +166,20 @@ def main(stop_event: threading.Event = threading.Event()):
 
 
 def get_main_thread() -> tuple[threading.Thread, threading.Event]:
+    """
+    Run the main processing loop in a separate thread.
+
+    This function creates and starts a background thread that runs the main
+    threshold controller loop. It allows the controller to be stopped via 
+    the returned Event object.
+
+    Returns
+    -------
+    tuple[threading.Thread, threading.Event]
+        A tuple containing:
+        - threading.Thread: The thread object running the controller loop
+        - threading.Event: Event object that can be .set() to stop the controller
+    """
     stop_event = threading.Event()
     stop_event.clear()
 
